@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  app:
+    build:
+      context: ./flask
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - ./flask:/app
+    ports:
+      - "5000:5000"
+
+  vue-app:
+    build:
+      context: ./vue3
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./vue3:/app
+    command: >
+      sh -c "
+      if [ ! -d /app/my-project ]; then
+        vue create my-project --default && cd my-project && yarn serve;
+      else
+        cd my-project && yarn serve;
+      fi
+      "
+  db:
+    restart: always
+    image: mysql/mysql-server:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: flask_app
+      MYSQL_USER: docker
+      MYSQL_PASSWORD: docker
+      TZ: 'Asia/Tokyo'
+    volumes:
+    - ./data_mysql:/var/lib/mysql
+    ports:
+    - 3306:3306
