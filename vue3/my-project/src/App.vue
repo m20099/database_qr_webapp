@@ -1,8 +1,10 @@
 <template>
   <div id="app">
     <h2>QR Web App Demo</h2>
-    <QRCodeGenerator />
-    <QRCodeScanner />
+    <div class="qr-container">
+      <QRCodeGenerator />
+      <QRCodeScanner />
+    </div>
   </div>
 </template>
 
@@ -32,4 +34,10 @@ h1 {
   font-size: 2em;
   margin-bottom: 20px;
 }
+
+.qr-container {
+  display: flex;
+  gap: 20px; /* コンポーネント間のスペース */
+}
+
 </style>

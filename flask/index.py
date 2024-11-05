@@ -8,16 +8,18 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# CORS 設定
 CORS(app, resources={
      r"/api/qr-data": {"origins": "http://localhost:8080"},
      r"/view-data": {"origins": "http://localhost:8080"}
 })
 
+# localhost:5000/
 @app.route("/",methods=['GET'])
 def index():
     return "<h1>Reload test</h1>"
 
-
+# demo version用db定義
 class QRData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     code_content = db.Column(db.String(255), nullable=False)
@@ -34,11 +36,10 @@ def receive_qr_data():
 
     return jsonify({'message': 'QR data received successfully'}), 201
 
+# dbに入っている値を参照する用ページ
 @app.route('/view-data', methods=['GET'])
 def view_data():
-    # データベースからすべてのQRコードデータを取得
     qr_data_list = QRData.query.all()
-    # データをHTMLテンプレートに渡して表示
     return jsonify([{'id': data.id, 'code_content': data.code_content} for data in qr_data_list])
 
 if __name__ == "__main__":
