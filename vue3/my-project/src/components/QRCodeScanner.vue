@@ -1,17 +1,18 @@
 <template>
-  <h3>Scanner</h3>
-  <div class="qr-code-scanner">
-    <qrcode-stream class="camera-view" @detect="onDetect" @init="onInit"></qrcode-stream>
-  </div>
-  <div v-if="qrCodeData" class="result">
-    <h3>QRコードの内容:</h3>
-    <p>{{ qrCodeData }}</p>
+  <div>
+    <h3>Scanner</h3>    
+    <div class="qr-code-scanner">
+      <qrcode-stream class="camera-view" @detect="onDetect" @init="onInit"></qrcode-stream>
+    </div>
+    <div v-if="qrCodeData" class="result">
+      <h3>Scan result:</h3>
+      <p>{{ qrCodeData }}</p>
+    </div>
   </div>
 </template>
 
 <script>
 import { QrcodeStream } from "vue-qrcode-reader";
-//import axios from "axios"
 
 export default {
   components: {
@@ -63,10 +64,10 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 100px;
-  height: 100px;
+  width: 200px;
+  height: 200px;
 }
 .result {
-  width:250px;
+  width:200px;
 }
 </style>

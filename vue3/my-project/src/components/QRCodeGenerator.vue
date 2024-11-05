@@ -32,10 +32,6 @@ export default {
 </script>
 
 <style scoped>
-/* 必要に応じてスタイルを追加 */
-</style>
-
-<style scoped>
 .qr-generator {
   display: flex;
   flex-direction: column;
