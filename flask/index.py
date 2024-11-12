@@ -22,15 +22,25 @@ def index():
 # demo version用db定義
 class QRData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    code_content = db.Column(db.String(255), nullable=False)
-
+    store_name = db.Column(db.String(255), nullable=False)
+    store_location = db.Column(db.String(255), nullable=False)
+    store_description = db.Column(db.String(255), nullable=False)
 
 # 読み取ったデータを渡すエンドポイント
 @app.route('/api/qr-data', methods=['POST'])
 def receive_qr_data():
     data = request.get_json()
 
-    qr_data = QRData(code_content=data['code_content'])
+    store_name = data['storeName']
+    store_location = data['storeLocation']
+    store_description = data['storeDescription']
+    
+    qr_data = QRData(
+        store_name=store_name,
+        store_location=store_location,
+        store_description=store_description
+    )
+    
     db.session.add(qr_data)
     db.session.commit()
 
@@ -40,8 +50,11 @@ def receive_qr_data():
 @app.route('/view-data', methods=['GET'])
 def view_data():
     qr_data_list = QRData.query.all()
-    return jsonify([{'id': data.id, 'code_content': data.code_content} for data in qr_data_list])
-
+    return jsonify([
+        {'id': data.id, 'store_name': data.store_name, 'store_location': data.store_location, 'store_description': data.store_description}
+        for data in qr_data_list
+    ])
+    
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
