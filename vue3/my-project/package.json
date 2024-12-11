@@ -13,7 +13,15 @@
     "qrcode":"^1.5.0",
     "vue-qrcode-reader":"^5.5.11",
     "axios":"^0.21.1",
-    "vue-router":"^4.0.0"
+    "vue-router":"^4.0.0",
+    "chart.js": "^4.3.0",
+    "vue-chartjs": "^5.2.0",
+    "luxon": "^3.0.0",
+    "chartjs-adapter-luxon": "^1.0.0",
+    "pinia": "^2.1.4",
+    "date-fns": "^2.30.0",
+    "lodash": "^4.17.21",
+    "vue-toastification": "^1.7.14"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
