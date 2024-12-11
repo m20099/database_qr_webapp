@@ -2,18 +2,14 @@
   <div class="userhome-container">
     <h1>QR Code Scanner</h1>
 
-    <!-- QRコードリーダー -->
     <div class="qrcode-wrapper">
       <qrcode-stream @detect="onDetect" @init="onInit" class="qrcode-stream"></qrcode-stream>
+      <div class="guideline"><div></div></div>
     </div>
 
-    <!-- 読み取り結果表示 -->
     <div v-if="decodedText" class="decoded-result">
       <p>読み取り結果:</p>
       <p class="result">{{ decodedText }}</p>
-    </div>
-    <div v-else>
-      <p>QRコードをスキャン</p>
     </div>
   </div>
 </template>
@@ -22,24 +18,22 @@
 import { QrcodeStream } from 'vue-qrcode-reader'
 
 export default {
-  name: 'UserHome',
+  name: 'ReadQR',
   components: {
     QrcodeStream
   },
   data() {
     return {
-      decodedText: null,  // 初期値をnull
+      decodedText: null,
     }
   },
   methods: {
-    // QRコードのデコード結果を受け取る
     onDetect(detectedCodes) {
       console.log('デコード結果:', detectedCodes);
       if (detectedCodes.length > 0) {
         this.decodedText = detectedCodes[0].rawValue;
       }
     },
-    // 初期化完了後の処理
     onInit(promise) {
       promise
         .then(() => {
@@ -69,11 +63,62 @@ h1 {
 }
 
 .qrcode-wrapper {
-  width: 150px;
-  height: 150px;
-  overflow: hidden;
+  width: 250px;
+  height: 250px;
   position: relative;
+  border: 2px solid transparent;
+  overflow: hidden;
 }
+
+.guideline {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  right: 15px;
+  bottom: 15px;
+  pointer-events: none;
+}
+
+.guideline::before,
+.guideline::after,
+.guideline div::before,
+.guideline div::after {
+  content: "";
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 4px solid #ffffff;
+  border-radius: 10%;
+}
+
+.guideline::before {
+  top: 0;
+  left: 0;
+  border-right: none;
+  border-bottom: none;
+}
+
+.guideline::after {
+  bottom: 0;
+  right: 0;
+  border-left: none;
+  border-top: none;
+}
+
+.guideline div::before {
+  top: 0;
+  right: 0;
+  border-left: none;
+  border-bottom: none;
+}
+
+.guideline div::after {
+  bottom: 0;
+  left: 0;
+  border-right: none;
+  border-top: none;
+}
+
 
 .qrcode-stream {
   width: 100%;

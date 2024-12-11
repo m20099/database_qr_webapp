@@ -1,95 +1,151 @@
 <template>
   <div class="home-container">
-    <!-- タイトル -->
-    <h1 class="title">QR Code Web App Demo</h1>
-    
-    <!-- ボックスのコンテナ -->
-    <div class="boxes-container">
-      <!-- ボックス1 -->
-      <div class="box">
-        <h3>店側</h3>
-        <button class="box-button" @click="$router.push('/storehome')">PUSH</button>
+    <!-- 青背景部分 -->
+    <div class="hero-section">
+      <div class="hero-content">
+        <h1>QRコードを利用した<br>買い物履歴管理システム(仮)</h1>
+        <p>レシート情報が埋め込まれたQRコードを読み取るだけで簡単に支出を記録</p>
+        <div class="hero-actions">
+          <router-link to="/login" class="btn">Log In</router-link>
+          <router-link to="/userregister" class="btn">Register</router-link>
+        </div>
       </div>
+      <div class="hero-image">
+        <img src="@/assets/karigazo.png" alt="仮の画像">
+      </div>
+    </div>
 
-      <!-- ボックス2 -->
-      <div class="box">
-        <h3>ユーザ側</h3>
-        <button class="box-button" @click="$router.push('/userhome')">PUSH</button>
-      </div>
+    <!-- 白背景部分 -->
+    <div class="info-section">
+      <h2>How to Use</h2>
+      <p>未定</p>
     </div>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'Home-Page'
-}
+  name: "HomePage",
+};
 </script>
 
 <style scoped>
+/* 全体レイアウト */
 .home-container {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* 青背景セクション */
+.hero-section {
+  display: flex;
+  justify-content: center; /* 要素全体を中央寄せ */
+  align-items: center;
+  background: linear-gradient(90deg, #0b3a63, #135389, #0b3a63);
+  width: 100%; /* 横幅を100%に維持 */
+  padding: 40px 10%; /* 左右の余白を縮小 */
+  box-sizing: border-box; /* パディング込みで幅を計算 */
+  gap: 20px; /* 要素間のスペース */
+  color: white;
+}
+
+.hero-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 40px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #30343A;
-}
-
-.title {
-  font-size: 2.5em;
-  font-weight: bold;
-  color: #30343A;
-  margin-bottom: 40px;
-  text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
-}
-
-.boxes-container {
-  display: flex;
-  gap: 30px;
-  flex-wrap: wrap;
   justify-content: center;
-}
-
-.box {
-  background-color: #ffffff;
-  padding: 25px;
-  border-radius: 12px;
   text-align: center;
-  width: 220px;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  transition: transform 0.3s ease;
+  flex: 0.45; /* 幅を45%に制限して寄せる */
 }
 
-.box:hover {
-  transform: translateY(-5px);
+.hero-content h1 {
+  font-size: 2.5em;
+  margin-bottom: 20px;
 }
 
-.box h3 {
-  margin-bottom: 15px;
-  color: #333;
-  font-size: 1.2em;
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
 }
 
-.box-button {
+
+.hero-actions .btn {
+  background-color: white;
+  color: #0078d4;
   padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
+  border-radius: 5px;
+  text-align: center;
+  text-decoration: none;
   font-size: 1em;
-  color: white;
-  background-color: #135389;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  transition: background-color 0.3s;
+  flex: 1; /* ボタンの幅を均等に */
+  max-width: 150px;
 }
 
-.box-button:hover {
-  background-color: #0056b3;
-  transform: scale(1.05);
+.hero-actions .btn:hover {
+  background-color: #e6f4ff;
 }
 
-@media (max-width: 600px) {
-  .boxes-container {
+
+.hero-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 0.45; /* 幅を45%に制限して寄せる */
+}
+
+.hero-image img {
+  width: 100%;
+  max-width: 300px; /* 最大幅を縮小してバランスを取る */
+  height: auto;
+  border-radius: 10px;
+}
+
+/* 白背景セクション */
+.info-section {
+  background-color: white;
+  padding: 40px;
+  text-align: center;
+}
+
+.info-section h2 {
+  font-size: 1.5em; /* サイズ調整 */
+  margin-bottom: 20px;
+}
+
+.info-section p {
+  font-size: 1em;
+  color: #555;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .hero-section {
     flex-direction: column;
+    text-align: center;
+    gap: 10px; /* 縦方向の間隔を縮小 */
+  }
+
+  .hero-content {
+    margin: 0; /* マージンをリセット */
+  }
+
+  .hero-image {
+    margin: 20px 0; /* 上下余白追加 */
+  }
+
+  .hero-content h1 {
+    font-size: 1.8em; /* フォントサイズ縮小 */
+  }
+
+  .hero-actions {
+    gap: 10px; /* ボタン間の間隔縮小 */
+  }
+
+  .info-section h2 {
+    font-size: 1.2em; /* サイズ調整 */
   }
 }
 </style>

@@ -134,7 +134,7 @@ export default {
         body: JSON.stringify(data)
       });
       setTimeout(() => {
-        this.isLoading = false; // ローディングを終了
+        this.isLoading = false;
       }, 500);
       console.log('データベースに保存');
     },
