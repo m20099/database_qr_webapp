@@ -1,29 +1,76 @@
 <template>
-  <div class="user-home">
-    <div class="chart-container">
-      <button class="nav-button left" @click="goToPreviousWeek">＜</button>
-      <canvas id="expenseChart"></canvas>
-      <button class="nav-button right" @click="goToNextWeek" :disabled="isNextButtonDisabled">＞</button>
-    </div>
-    <div class="totals-row">
-      <div class="total-container">
-        <p class="total-label">合計支出（{{ computedDateRange }}）</p>
-        <p class="total-expenses">¥{{ totalExpense.toLocaleString() }}</p>
-      </div>
-      <div class="total-container">
-        <p class="total-label">1か月の合計支出</p>
-        <p class="total-expenses">¥{{ monthlyTotalExpense.toLocaleString() }}</p>
-      </div>
-    </div>
-    <div class="qr-button-container">
-      <router-link to="/userhome/qr_reader" class="qr-button">QRコードを読み取る</router-link>
-    </div>
-  </div>
+  <v-container class="user-home">
+    <v-row justify="center">
+      <v-col cols="12" md="10" sm="12">
+        <v-card outlined>
+          <v-card-title class="d-flex justify-space-between">
+            <v-btn icon @click="goToPreviousWeek">
+              <v-icon>mdi-chevron-left</v-icon>
+            </v-btn>
+            {{ computedDateRange }}
+            <v-btn icon @click="goToNextWeek" :disabled="isNextButtonDisabled">
+              <v-icon>mdi-chevron-right</v-icon>
+            </v-btn>
+          </v-card-title>
+          <v-card-text>
+            <canvas id="expenseChart"></canvas>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <v-row justify="center" class="totals-row" dense>
+      <v-col cols="12" md="5" sm="12">
+        <v-card outlined class="pa-2 mb-6">
+          <v-tabs v-model="activeTab" align-tabs="center" class="tab-btn-group">
+            <v-tab :value="1">
+              <v-icon color="blue" class="mr-1">mdi-calendar-today</v-icon>Today
+            </v-tab>
+            <v-tab :value="2">
+              <v-icon color="green" class="mr-1">mdi-calendar-week</v-icon>Week
+            </v-tab>
+            <v-tab :value="3">
+              <v-icon color="orange" class="mr-1">mdi-calendar-month</v-icon>Month
+            </v-tab>
+          </v-tabs>
+          <v-tabs-window v-model="activeTab" :transition="tabTransition">
+            <v-tabs-window-item :value="1">
+              <v-card-text class="text-center">
+                <div class="text-subtitle-1">今日</div>
+                <div class="text-h5 font-weight-bold mt-2">
+                  ¥{{ todayExpense.toLocaleString() }}
+                </div>
+              </v-card-text>
+            </v-tabs-window-item>
+
+            <v-tabs-window-item :value="2" :transition="tabTransition">
+              <v-card-text class="text-center">
+                <div class="text-subtitle-1"> {{ computedDateRange }}</div>
+                <div class="text-h5 font-weight-bold mt-2">
+                  ¥{{ totalExpense.toLocaleString() }}
+                </div>
+              </v-card-text>
+            </v-tabs-window-item>
+
+            <v-tabs-window-item :value="3" :transition="tabTransition">
+              <v-card-text class="text-center">
+                <div class="text-subtitle-1">今月</div>
+                <div class="text-h5 font-weight-bold mt-2">
+                  ¥{{ monthlyExpense.toLocaleString() }}
+                </div>
+              </v-card-text>
+            </v-tabs-window-item>
+          </v-tabs-window>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, nextTick } from "vue";
 import Chart from "chart.js/auto";
+import axios from "axios";
 
 export default {
   name: "UserHome",
@@ -31,92 +78,129 @@ export default {
     const startDate = ref(new Date());
     const weeklyData = ref([]);
     const today = new Date();
-    const monthlyData = ref([]);
+    const purchaseRecords = ref([]);
     let chartInstance = null;
+    const activeTab = ref(1);
 
-    // サンプルデータ生成
-    const generateDataWithDates = (startDate, days) => {
-      const result = { data: [], labels: [] };
-      for (let i = 0; i < days; i++) {
-        const date = new Date(startDate);
-        date.setDate(startDate.getDate() + i);
-        const formatted = `${date.getMonth() + 1}/${date.getDate()}`;
-        result.labels.push(formatted);
-        result.data.push(date > today ? 0 : Math.floor(Math.random() * 3000));
-      }
-      return result;
+    const fetchPurchaseData = async () => {
+      try {
+        const userId = JSON.parse(localStorage.getItem("user"));
+        
+        const response = await axios.get("http://localhost:5000/api/purchases", {
+            params: { user_id: userId },
+        });
+
+        purchaseRecords.value = response.data.purchase_records;
+
+        const groupedData = {};
+        purchaseRecords.value.forEach(record => {
+            const date = new Date(record.purchase_date);
+            const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+            groupedData[formattedDate] = (groupedData[formattedDate] || 0) + record.total_amount;
+        });
+
+
+        const labels = [];
+        const data = [];
+        const sundayStart = getSundayStart(startDate.value);
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(sundayStart);
+          date.setDate(date.getDate() + i);
+          const formatted = `${date.getMonth() + 1}/${date.getDate()}`;
+          labels.push(formatted);
+          data.push(groupedData[formatted] || 0);
+        }
+
+        weeklyData.value = data;
+        updateChart(labels, data);
+        } catch (error) {
+        console.error("購入データ取得エラー:", error.response ? error.response.data : error.message);
+        }
     };
 
     const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-            backgroundColor: "rgba(0, 0, 0, 0.8)",
-            callbacks: {
-                label: (tooltipItem) => `¥${tooltipItem.raw.toLocaleString()}`,
-            },
-            },
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          callbacks: {
+            label: (tooltipItem) => `¥${tooltipItem.raw.toLocaleString()}`,
+          },
         },
-        scales: {
-            x: {
-            grid: { display: false },
-            ticks: {
-                font: { size: 12 },
-                color: "#555",
-            },
-            },
-            y: {
-            grid: { color: "rgba(0, 0, 0, 0.1)" },
-            ticks: {
-                font: { size: 12 },
-                color: "#555",
-                stepSize: 2000,
-                callback: (value) => `¥${value.toLocaleString()}`,
-            },
-            beginAtZero: true,
-            },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { size: 12 },
+            color: "#555",
+          },
         },
-        };
+        y: {
+          grid: { color: "rgba(0, 0, 0, 0.1)" },
+          ticks: {
+            font: { size: 12 },
+            color: "#555",
+            stepSize: 2000,
+            callback: (value) => `¥${value.toLocaleString()}`,
+          },
+          beginAtZero: true,
+        },
+      },
+    };
 
-        const updateChart = () => {
-        const sundayStart = getSundayStart(startDate.value);
-        const { data: newWeeklyData, labels } = generateDataWithDates(sundayStart, 7);
-        weeklyData.value = newWeeklyData;
+    const updateChart = (labels, data) => {
+      const ctx = document.getElementById("expenseChart").getContext("2d");
+      const chartData = {
+        labels: labels,
+        datasets: [
+          {
+            data: data,
+            backgroundColor: "rgba(33, 150, 243, 0.6)",
+            borderColor: "rgba(33, 150, 243, 1)",
+            borderWidth: 1,
+            hoverBackgroundColor: "rgba(33, 150, 243, 0.8)",
+          },
+        ],
+      };
 
-        const ctx = document.getElementById("expenseChart").getContext("2d");
-        const chartData = {
-            labels: labels,
-            datasets: [
-            {
-                data: newWeeklyData,
-                backgroundColor: "rgba(33, 150, 243, 0.6)",
-                borderColor: "rgba(33, 150, 243, 1)",
-                borderWidth: 1,
-                hoverBackgroundColor: "rgba(33, 150, 243, 0.8)",
-            },
-            ],
-        };
-
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
-        chartInstance = new Chart(ctx, { type: "bar", data: chartData, options: chartOptions });
-        };
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+      chartInstance = new Chart(ctx, { type: "bar", data: chartData, options: chartOptions });
+    };
 
     const isNextButtonDisabled = computed(() => {
       const nextWeekStartDate = new Date(startDate.value);
       nextWeekStartDate.setDate(nextWeekStartDate.getDate() + 7);
-      return nextWeekStartDate > today; // 次の週の開始日が今日より未来なら無効
+      return nextWeekStartDate > today;
     });
 
     const totalExpense = computed(() => {
       return weeklyData.value.reduce((sum, expense) => sum + expense, 0);
     });
 
-    const monthlyTotalExpense = computed(() => {
-      return monthlyData.value.reduce((sum, expense) => sum + expense, 0);
+    const todayExpense = computed(() => {
+        const formattedToday = `${today.getMonth() + 1}/${today.getDate()}`;
+        return weeklyData.value.reduce((sum, amount, index) => {
+            const label = chartInstance?.data.labels[index];
+            return label === formattedToday ? sum + amount : sum;
+        }, 0);
+    });
+
+    const monthlyExpense = computed(() => {
+        const currentMonth = today.getMonth() + 1;
+        const currentYear = today.getFullYear();
+
+        return purchaseRecords.value.reduce((sum, record) => {
+            const date = new Date(record.purchase_date);
+            if (date.getFullYear() === currentYear && date.getMonth() + 1 === currentMonth) {
+            sum += record.total_amount;
+            }
+            return sum;
+        }, 0);
     });
 
     const computedDateRange = computed(() => {
@@ -137,47 +221,28 @@ export default {
       const newDate = new Date(startDate.value);
       newDate.setDate(newDate.getDate() - 7);
       startDate.value = getSundayStart(newDate);
-      updateChart();
+      fetchPurchaseData();
     };
 
     const goToNextWeek = () => {
       const currentDate = new Date(startDate.value);
       currentDate.setDate(currentDate.getDate() + 7);
       startDate.value = currentDate;
-      updateChart();
+      fetchPurchaseData();
     };
 
-    const generateMonthlyData = () => {
-        const startOfMonth = new Date(today);
-        startOfMonth.setDate(1); // 今月の初日
-        const endOfMonth = new Date(today);
-        endOfMonth.setMonth(startOfMonth.getMonth() + 1);
-        endOfMonth.setDate(0); // 今月の末日
-
-        const result = [];
-        for (
-            let date = new Date(startOfMonth);
-            date <= endOfMonth;
-            date.setDate(date.getDate() + 1)
-        ) {
-            const value = date > today ? 0 : Math.floor(Math.random() * 3000); // 未来は0
-            result.push(value);
-        }
-
-        monthlyData.value = result;
-    };
-
-
-    onMounted(() => {
-      updateChart();
-      generateMonthlyData();
+    onMounted(async () => {
+        await nextTick();
+        fetchPurchaseData();
     });
 
     return {
+      activeTab,
       goToPreviousWeek,
       goToNextWeek,
       totalExpense,
-      monthlyTotalExpense,
+      todayExpense,
+      monthlyExpense,
       isNextButtonDisabled,
       computedDateRange,
     };
@@ -185,122 +250,15 @@ export default {
 };
 </script>
 
-
 <style scoped>
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap");
-
 .user-home {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  font-family: "Poppins", Arial, sans-serif;
-  color: #4a4a4a;
-}
-
-.chart-container {
-  width: 100%;
-  max-width: 700px;
-  margin: 20px auto;
-  padding: 20px;
-  border-radius: 16px;
-  background: #ffffff;
-  position: relative;
-  border: 2px solid #dcdcdc; /* 追加: 枠線 */
-}
-
-.chart-container canvas {
-  width: 100%;
-  height: 300px;
-}
-
-.nav-button {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: linear-gradient(135deg, #6c5ce7, #341f97);
-  border: none;
-  border-radius: 50%;
-  padding: 10px;
-  width: 45px;
-  height: 45px;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.nav-button:hover {
-  background: linear-gradient(135deg, #8e44ad, #341f97);
-}
-
-.nav-button.left {
-  left: -60px;
-}
-
-.nav-button.right {
-  right: -60px;
-}
-
-.nav-button:disabled {
-  background: #cccccc;
-  cursor: not-allowed;
-}
-
-.totals-row {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  max-width: 740px;
-  margin: 20px auto;
-  gap: 20px;
-  color: #333;
-}
-
-.total-container {
-  flex: 1;
-  padding: 20px;
-  border-radius: 12px;
-  background-color: #ffffff;
-  text-align: center;
-  border: 2px solid #dcdcdc;
-}
-
-.total-label {
-  font-size: 16px;
-  font-weight: 500;
-  color: #7f8c8d;
-  margin-bottom: 10px;
-}
-
-.total-expenses {
-  font-size: 32px;
-  font-weight: 700;
-  color: #2980b9;
-  margin: 0;
-}
-
-.qr-button-container {
-  display: flex;
-  justify-content: center;
   margin-top: 20px;
 }
 
-.qr-button {
-  background: linear-gradient(135deg, #f9f9f9, #a7d4f2);
-  color: white;
-  padding: 10px 20px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 16px;
-  font-weight: bold;
-  transition: background 0.3s ease;
-}
-
-.qr-button:hover {
-  background: linear-gradient(135deg, #f9f8fa, #828282);
+.v-card {
+  box-shadow: none !important;
+  border: 1px solid #a4a4a4;
+  border-radius: 16px; 
 }
 </style>
 

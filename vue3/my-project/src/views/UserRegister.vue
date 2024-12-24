@@ -1,53 +1,47 @@
 <template>
   <div class="user-register">
     <h1>Register</h1>
-    <form @submit.prevent="registerUser">
-      <div class="form-group" :class="{ 'error-group': errors.username }">
-        <label for="username">Username</label>
-        <input
-          type="text"
-          id="username"
-          v-model="username"
-          @input="clearError('username')"
-          placeholder="ユーザ名を入力"
-        />
-        <p v-if="errors.username" class="error-text">{{ errors.username }}</p>
-      </div>
-      <div class="form-group" :class="{ 'error-group': errors.email }">
-        <label for="email">Email</label>
-        <input
-          type="text"
-          id="email"
-          v-model="email"
-          @input="clearError('email')"
-          placeholder="メールアドレスを入力"
-        />
-        <p v-if="errors.email" class="error-text">{{ errors.email }}</p>
-      </div>
-      <div class="form-group" :class="{ 'error-group': errors.password }">
-        <label for="password">Password</label>
-        <input
-          type="password"
-          id="password"
-          v-model="password"
-          @input="clearError('password')"
-          placeholder="パスワードを入力"
-        />
-        <p v-if="errors.password" class="error-text">{{ errors.password }}</p>
-      </div>
-      <div class="form-group" :class="{ 'error-group': errors.confirmPassword }">
-        <label for="confirm-password">Retype Password</label>
-        <input
-            type="password"
-            id="confirm-password"
-            v-model="confirmPassword"
-            @input="clearError('confirmPassword')"
-            placeholder="パスワードを再入力"
-        />
-        <p v-if="errors.confirmPassword" class="error-text">{{ errors.confirmPassword }}</p>
-      </div>
-      <button type="submit" class="submit-button">Register</button>
-    </form>
+    <v-form @submit.prevent="registerUser">
+      <v-text-field
+        v-model="username"
+        label="Username"
+        variant="outlined"
+        prepend-icon="mdi-account"
+        :error-messages="errors.username"
+        @input="clearError('username')"
+      ></v-text-field>
+
+      <v-text-field
+        v-model="email"
+        label="Email"
+        variant="outlined"
+        prepend-icon="mdi-email"
+        :error-messages="errors.email"
+        @input="clearError('email')"
+      ></v-text-field>
+
+      <v-text-field
+        v-model="password"
+        label="Password"
+        variant="outlined"
+        prepend-icon="mdi-lock"
+        type="password"
+        :error-messages="errors.password"
+        @input="clearError('password')"
+      ></v-text-field>
+
+      <v-text-field
+        v-model="confirmPassword"
+        label="Retype Password"
+        variant="outlined"
+        prepend-icon="mdi-lock-check"
+        type="password"
+        :error-messages="errors.confirmPassword"
+        @input="clearError('confirmPassword')"
+      ></v-text-field>
+
+      <v-btn color="#135389" type="submit" block class="mt-4">Register</v-btn>
+    </v-form>
 
     <p class="login-link">
       アカウントをお持ちの方は 
@@ -60,12 +54,13 @@
           <h2> 登録成功 </h2>
           <p>アカウントが作成されました。</p>
           <p>ログインページへ移動します。</p>
-          <button @click="redirectToLogin">OK</button>
+          <v-btn color="primary" @click="redirectToLogin">OK</v-btn>
         </div>
       </div>
     </transition>
   </div>
 </template>
+
 
 <script>
 import { ref } from 'vue';
@@ -86,7 +81,6 @@ export default {
 
     const validateFields = () => {
       errors.value = {};
-        // ユーザ名の検証
         if (!username.value.trim()) {
             errors.value.username = 'ユーザ名を入力してください。';
         } else if (!/^[a-zA-Z0-9]{6,30}$/.test(username.value)) {
@@ -94,21 +88,18 @@ export default {
             'ユーザ名は6〜30文字の半角英数字のみ使用可能です。';
         }
 
-        // メールアドレスの検証
         if (!email.value.trim()) {
             errors.value.email = 'メールアドレスを入力してください。';
         } else if (!email.value.includes('@')) {
             errors.value.email = '有効なメールアドレスを入力してください。';
         }
 
-        // パスワードの検証
         if (!password.value.trim()) {
             errors.value.password = 'パスワードを入力してください。';
         } else if (password.value.length < 8) {
             errors.value.password = 'パスワードは8文字以上である必要があります。';
         }
 
-        // パスワード再入力の検証
         if (!confirmPassword.value.trim()) {
             errors.value.confirmPassword = 'パスワードを再入力してください。';
         } else if (password.value !== confirmPassword.value) {

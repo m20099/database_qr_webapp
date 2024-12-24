@@ -1,151 +1,101 @@
 <template>
-  <div class="home-container">
-    <!-- 青背景部分 -->
-    <div class="hero-section">
-      <div class="hero-content">
-        <h1>QRコードを利用した<br>買い物履歴管理システム(仮)</h1>
-        <p>レシート情報が埋め込まれたQRコードを読み取るだけで簡単に支出を記録</p>
-        <div class="hero-actions">
-          <router-link to="/login" class="btn">Log In</router-link>
-          <router-link to="/userregister" class="btn">Register</router-link>
-        </div>
-      </div>
-      <div class="hero-image">
-        <img src="@/assets/karigazo.png" alt="仮の画像">
-      </div>
-    </div>
+  <v-container fluid class="home-container">
+    <v-carousel cycle height="400" class="custom-carousel" :show-arrows="false">
+      <v-carousel-item>
+        <v-row
+          class="hero-section"
+          justify="center"
+          align="center"
+          style="min-height: 400px;"
+        >
+          <v-col cols="12" md="6" class="text-center">
+            <h1 class="text-h4 font-weight-bold mb-4">
+              QRコードを利用した<br />支出履歴管理システム
+            </h1>
+            <p class="text-subtitle-1">
+              レシート情報が格納されたQRコードを<br />読み取るだけで簡単に支出を記録
+            </p>
+          </v-col>
+        </v-row>
+      </v-carousel-item>
 
-    <!-- 白背景部分 -->
-    <div class="info-section">
-      <h2>How to Use</h2>
-      <p>未定</p>
-    </div>
-  </div>
+      <v-carousel-item>
+        <v-row
+          class="page-section"
+          justify="center"
+          align="center"
+          style="background: linear-gradient(90deg, #0b3a63, #135389, #0b3a63); min-height: 400px;"
+        >
+        </v-row>
+      </v-carousel-item>
+
+
+      <v-carousel-item>
+        <v-row
+          class="page-section"
+          justify="center"
+          align="center"
+          style="background: linear-gradient(90deg, #0b3a63, #135389, #0b3a63); min-height: 400px;"
+        >
+        </v-row>
+      </v-carousel-item>
+    </v-carousel>
+    <v-container class="how-to-use">
+      <v-row>
+        <v-col cols="12" class="text-center mb-6">
+          <h2 class="text-h4 font-weight-bold">How to Use</h2>
+          <p class="text-subtitle-1">
+            未定
+          </p>
+        </v-col>
+      </v-row>
+  </v-container>
+    </v-container>
+
 </template>
 
 <script>
 export default {
   name: "HomePage",
+  data() {
+    return {
+      carouselItems: [
+        { src: "/images/slide1.jpg" },
+        { src: "/images/slide2.jpg" },
+      ],
+    };
+  },
 };
 </script>
 
 <style scoped>
-/* 全体レイアウト */
 .home-container {
-  font-family: Arial, sans-serif;
-  margin: 0;
+  font-family: 'Roboto', sans-serif;
   padding: 0;
 }
 
-/* 青背景セクション */
 .hero-section {
-  display: flex;
-  justify-content: center; /* 要素全体を中央寄せ */
-  align-items: center;
+  padding: 40px 10%;
   background: linear-gradient(90deg, #0b3a63, #135389, #0b3a63);
-  width: 100%; /* 横幅を100%に維持 */
-  padding: 40px 10%; /* 左右の余白を縮小 */
-  box-sizing: border-box; /* パディング込みで幅を計算 */
-  gap: 20px; /* 要素間のスペース */
   color: white;
+  box-sizing: border-box;
 }
 
-.hero-content {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-  flex: 0.45; /* 幅を45%に制限して寄せる */
-}
-
-.hero-content h1 {
-  font-size: 2.5em;
-  margin-bottom: 20px;
-}
-
-.hero-actions {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 20px;
-}
-
-
-.hero-actions .btn {
-  background-color: white;
-  color: #0078d4;
-  padding: 10px 20px;
-  border-radius: 5px;
-  text-align: center;
-  text-decoration: none;
+.hero-actions .v-btn {
   font-size: 1em;
-  transition: background-color 0.3s;
-  flex: 1; /* ボタンの幅を均等に */
-  max-width: 150px;
 }
 
-.hero-actions .btn:hover {
-  background-color: #e6f4ff;
-}
-
-
-.hero-image {
+/* 高さ調整 */
+.custom-carousel .v-carousel-item {
   display: flex;
-  justify-content: center;
   align-items: center;
-  flex: 0.45; /* 幅を45%に制限して寄せる */
+  justify-content: center;
 }
 
-.hero-image img {
-  width: 100%;
-  max-width: 300px; /* 最大幅を縮小してバランスを取る */
-  height: auto;
-  border-radius: 10px;
-}
-
-/* 白背景セクション */
-.info-section {
-  background-color: white;
-  padding: 40px;
-  text-align: center;
-}
-
-.info-section h2 {
-  font-size: 1.5em; /* サイズ調整 */
-  margin-bottom: 20px;
-}
-
-.info-section p {
-  font-size: 1em;
-  color: #555;
-}
-
-/* レスポンシブ対応 */
+/* メディアクエリ */
 @media (max-width: 768px) {
   .hero-section {
-    flex-direction: column;
-    text-align: center;
-    gap: 10px; /* 縦方向の間隔を縮小 */
-  }
-
-  .hero-content {
-    margin: 0; /* マージンをリセット */
-  }
-
-  .hero-image {
-    margin: 20px 0; /* 上下余白追加 */
-  }
-
-  .hero-content h1 {
-    font-size: 1.8em; /* フォントサイズ縮小 */
-  }
-
-  .hero-actions {
-    gap: 10px; /* ボタン間の間隔縮小 */
-  }
-
-  .info-section h2 {
-    font-size: 1.2em; /* サイズ調整 */
+    padding: 20px;
   }
 }
 </style>

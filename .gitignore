@@ -1,2 +1,4 @@
 data_mysql
 node_modules/
+.env
+database.db
