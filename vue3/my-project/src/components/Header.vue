@@ -1,39 +1,92 @@
 <template>
-  <header class="header">
-    <div class="header-content">
-      <div class="logo">
-        <img src="@/assets/logo.png" alt="App Logo" />
-        <h1 class="title">QR Shop Log Demo</h1>
-      </div>
-      <nav class="nav-links">
-        <router-link to="/" class="nav-link">HOME</router-link>
-        <router-link v-if="!isLoggedIn" to="/login" class="nav-link">LOG IN</router-link>
-        <router-link v-if="!isLoggedIn" to="/userregister" class="nav-link">REGISTER</router-link>
-        <router-link v-if="isLoggedIn" to="/userhome" class="nav-link">MY PAGE</router-link>
-        <router-link v-if="isLoggedIn" to="/login" class="nav-link" @click.prevent="handleLogout">LOG OUT</router-link>
-      </nav>
-    </div>
-  </header>
-</template>
+  <v-app-bar app :style="{ background: 'linear-gradient(90deg, #0b3a63, #135389, #0b3a63)' }" dark elevation="0">
+    <v-container>
+      <v-row align="center" justify="space-between" no-gutters>
+        <v-col cols="auto" class="d-flex align-center">
+            <v-icon color="#ffffff" class="logo-img">mdi-qrcode</v-icon>
+          <h1 class="title">QR Shop Log Demo</h1>
+        </v-col>
 
+        <v-col cols="auto" v-show="!isMobile" class="d-none d-md-flex">
+          <v-btn to="/" text class="nav-link d-flex flex-column align-center">
+            <v-icon size="24">mdi-home</v-icon>
+            <span class="nav-label">HOME</span>
+          </v-btn>
+          <template v-if="!isLoggedIn">
+            <v-btn to="/login" text class="nav-link d-flex flex-column align-center">
+              <v-icon size="24">mdi-login</v-icon>
+              <span class="nav-label">LOG IN</span>
+            </v-btn>
+            <v-btn to="/signup" text class="nav-link d-flex flex-column align-center">
+              <v-icon size="24">mdi-account-plus</v-icon>
+              <span class="nav-label">REGISTER</span>
+            </v-btn>
+          </template>
+          <template v-else>
+            <v-btn to="/mypage" text class="nav-link d-flex flex-column align-center">
+              <v-icon size="24">mdi-account</v-icon>
+              <span class="nav-label">MY PAGE</span>
+            </v-btn>
+            <v-btn text class="nav-link d-flex flex-column align-center" @click="showLogoutDialog = true">
+              <v-icon size="24">mdi-logout</v-icon>
+              <span class="nav-label">LOG OUT</span>
+            </v-btn>
+          </template>
+        </v-col>
+      </v-row>
+    </v-container>
+
+    <v-dialog v-model="showLogoutDialog" max-width="400">
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <v-icon color="red" style="padding-right:12px">mdi-logout</v-icon>
+          <span>LOG OUT</span>
+        </v-card-title>
+        <v-card-text>
+          ログアウトしますか？
+        </v-card-text>
+        <v-card-actions class="justify-end">
+          <v-btn text class="font-weight-bold" @click="showLogoutDialog = false">Cancel</v-btn>
+          <v-btn color="red" text class="font-weight-bold" @click="handleLogout">OK</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-app-bar>
+</template>
 <script>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, ref, onMounted, onUnmounted } from "vue";
 
 export default {
   name: "Header-main",
   setup() {
-    const router = useRouter();
-    const isLoggedIn = ref(!!localStorage.getItem("token")); // ログイン状態を判定
+    const isLoggedIn = computed(() => !!localStorage.getItem("token"));
+    const isMobile = ref(window.innerWidth <= 960);
+    const showLogoutDialog = ref(false);
 
     const handleLogout = () => {
       localStorage.removeItem("token");
-      isLoggedIn.value = false;
-      router.push("/login");
+      localStorage.removeItem("tokenExpiry");
+      localStorage.removeItem("user");
+      showLogoutDialog.value = false;
+      window.location.reload();
     };
+
+    const checkMobile = () => {
+      isMobile.value = window.innerWidth <= 600;
+    };
+
+    onMounted(() => {
+      window.addEventListener('resize', checkMobile);
+    });
+
+    onUnmounted(() => {
+      window.removeEventListener('resize', checkMobile);
+    });
 
     return {
       isLoggedIn,
+      isMobile,
+      showLogoutDialog,
       handleLogout,
     };
   },
@@ -41,34 +94,7 @@ export default {
 </script>
 
 <style scoped>
-.header {
-  width: 100%;
-  max-width: 100vw;
-  padding: 15px 30px;
-  background: linear-gradient(90deg, #0b3a63, #135389, #0b3a63);
-  color: white;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-sizing: border-box;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.header-content {
-  width: 100%;
-  max-width: 1200px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-}
-
-.logo img {
+.logo-img {
   width: 40px;
   height: 40px;
   margin-right: 10px;
@@ -80,23 +106,27 @@ export default {
   color: white;
 }
 
-.nav-links {
-  display: flex;
-  gap: 20px;
-}
-
 .nav-link {
-  color: #ffffff;
-  font-size: 16px;
+  color: white;
+  font-size: 12px;
   font-weight: 500;
-  padding: 8px 12px;
-  border-radius: 5px;
-  text-decoration: none;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  text-transform: none;
 }
 
-.nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-  color: #cce7ff;
+.v-app-bar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+}
+
+.v-list-item-title {
+  font-size: 16px;
+}
+
+.nav-label {
+  font-size: 12px; 
+  margin-left: 2px;
+  color: white;
+  text-transform: none;
 }
 </style>

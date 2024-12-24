@@ -4,7 +4,7 @@ import UserRegister from '../views/UserRegister.vue'
 import UserLogin from '../views/Login.vue'
 import UserHome from '../views/UserHome.vue'
 import ReadQR from '../views/ReadQR.vue'
-import StoreHome from '../views/Storehome.vue'
+import ReceiptSimulator from '../views/ReceiptSimulator.vue'
 
 const isAuthenticated = () => {
     return !!localStorage.getItem('token');
@@ -12,10 +12,10 @@ const isAuthenticated = () => {
 
 const routes = [
   { path: '/', name: 'Home', component: Home},
-  { path: '/userregister', name: 'UserRegister', component: UserRegister },
+  { path: '/signup', name: 'UserRegister', component: UserRegister },
   { path: '/login', name: 'UserLogin', component: UserLogin },
   {
-    path: '/userhome',
+    path: '/mypage',
     name: 'UserHome',
     component: UserHome,
     beforeEnter: (to, from, next) => {
@@ -27,7 +27,7 @@ const routes = [
     },
   },
   {
-    path: '/userhome/qr_reader',
+    path: '/mypage/qr_reader',
     name: 'qr_reader',
     component: ReadQR,
     beforeEnter: (to, from, next) => {
@@ -37,7 +37,8 @@ const routes = [
         next('/login');
       }
     },
-  },  { path: '/StoreHome', name: 'StoreHome', component: StoreHome }
+  },
+  { path: '/receipt_simulator', name: 'ReceiptSimulator', component: ReceiptSimulator }
 ]
 
 const router = createRouter({
