@@ -24,7 +24,6 @@ export default {
 body {
   background-color: #FBFEFF;
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .content {

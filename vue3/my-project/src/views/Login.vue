@@ -15,8 +15,10 @@
         v-model="password"
         label="Password"
         variant="outlined"
-        type="password"
+        :type="showPassword ? 'text' : 'password'"
         prepend-icon="mdi-lock"
+        :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+        @click:append-inner="togglePasswordVisibility"
         :error-messages="errors.password"
         @input="clearError('password')"
       ></v-text-field>
@@ -41,11 +43,14 @@ import { useRouter } from 'vue-router';
 export default {
   name: 'UserLogin',
   setup() {
+    const API_BASE_URL = process.env.VUE_APP_API_BASE_URL;
     const username = ref('');
     const password = ref('');
     const errors = ref({});
     const error = ref('');
     const router = useRouter();
+    const showPassword = ref(false);
+    console.log('API_BASE_URL:', process.env.VUE_APP_API_BASE_URL);
 
     const validateFields = () => {
       errors.value = {};
@@ -64,11 +69,14 @@ export default {
       }
     };
 
+    const togglePasswordVisibility = () => {
+      showPassword.value = !showPassword.value;
+    };
+
     const handleLogin = async () => {
       if (!validateFields()) return;
-
       try {
-        const response = await axios.post('http://localhost:5000/api/login', {
+        const response = await axios.post(`${API_BASE_URL}/api/login`, {
           username: username.value,
           password: password.value,
         });
@@ -97,6 +105,8 @@ export default {
       password,
       errors,
       error,
+      showPassword,
+      togglePasswordVisibility,
       handleLogin,
       clearError,
     };
@@ -119,6 +129,10 @@ h1 {
   text-align: center;
   margin-bottom: 20px;
   color: #333;
+}
+
+.v-text-field {
+  margin-bottom: 12px;
 }
 
 .error {
