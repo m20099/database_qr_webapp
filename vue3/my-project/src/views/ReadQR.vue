@@ -1,32 +1,61 @@
 <template>
-  <div class="userhome-container">
-    <h1>QR Code Scanner</h1>
+  <v-container class="userhome-container">
+    <v-row justify="center">
+      <v-col cols="12" md="8" class="text-center">
+        <h1>QR Code Scanner</h1>
+      </v-col>
+    </v-row>
 
-    <div class="qrcode-wrapper">
-      <qrcode-stream @detect="onDetect" @init="onInit" class="qrcode-stream"></qrcode-stream>
-      <div class="guideline"><div></div></div>
-    </div>
+    <v-row justify="center">
+      <v-col cols="12" md="6">
+        <div class="qrcode-wrapper">
+          <qrcode-stream @detect="onDetect" @init="onInit" class="qrcode-stream"></qrcode-stream>
+          <div class="guideline"><div></div></div>
+        </div>
+      </v-col>
+    </v-row>
 
-  <div v-if="decodedData" class="decoded-data">
-      <h2>デコードされた内容</h2>
-      <p><strong>ストアID:</strong> {{ decodedData.storeId }}</p>
-      <p><strong>購入日時:</strong> {{ decodedData.purchaseDate }}</p>
-      <h3>商品リスト</h3>
-      <ul>
-        <li v-for="item in decodedData.items" :key="item.id">
-          商品ID: {{ item.id }} / 数量: {{ item.quantity }}
-        </li>
-      </ul>
-    </div>
+    <v-row justify="center" v-if="decodedData">
+      <v-col cols="12" md="8">
+        <v-card class="pa-4" outlined>
+          <v-card-title class="d-flex justify-space-between align-center">
+            <span class="text-center">Result<br />ストアID：{{ decodedData.storeId }}<br />購入日時：{{ decodedData.purchaseDate }}</span>
+          </v-card-title>
+          <v-card-text style="max-height: 300px; overflow-y: auto;">
+            <v-list v-if="decodedData.items.length">
+              <v-list-item v-for="item in decodedData.items" :key="item.item_name" class="mb-2" >
+                <template v-slot:prepend>
+                  <v-avatar size="40" :style="{ border: '1px solid #135389' }">
+                    <v-icon color="#135389" size="24">mdi-cube</v-icon>
+                  </v-avatar>
+                </template>
+                <v-list-item-content>
+                  <v-list-item-title class="text-h6">
+                    {{ item.item_name }}
+                  </v-list-item-title>
+                  <v-list-item-subtitle class="text-body-2 text-gray">
+                    価格: ¥{{ item.price.toLocaleString() }} / 数量: {{ item.quantity }}
+                  </v-list-item-subtitle>
+                </v-list-item-content>
+              </v-list-item>
+            </v-list>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
 
-    <div v-else-if="decodedText" class="decoded-error">
-      <p>QRコードのデコードに失敗しました。</p>
-    </div>
-    </div>
+    <v-row justify="center" v-else-if="decodedText">
+      <v-col cols="12" md="6">
+        <v-alert type="error" outlined>
+          QRコードのデコードに失敗しました。
+        </v-alert>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
-
 <script>
-import { QrcodeStream } from 'vue-qrcode-reader'
+import { ref } from 'vue';
+import { QrcodeStream } from 'vue-qrcode-reader';
 import pako from "pako";
 import axios from "axios";
 
@@ -35,93 +64,107 @@ export default {
   components: {
     QrcodeStream
   },
-  data() {
-    return {
-      decodedText: null,
-      decodedData: null,
-      user: null,
-    }
-  },
+    setup() {
+        const API_BASE_URL = process.env.VUE_APP_API_BASE_URL;
+        const decodedText = ref(null);
+        const decodedData = ref(null);
+        const user = ref(null);
 
-  methods: {
+        const onInit = async (promise) => {
+            try {
+                await promise;
+                console.log("カメラが正常に初期化されました");
+            } catch (error) {
+                console.error("カメラの初期化に失敗しました:", error);
+            }
+        };
 
-    async onInit(promise) {
+        const onDetect = async (detectedCodes) => {
+            if (detectedCodes.length > 0) {
+                decodedText.value = detectedCodes[0].rawValue;
+                await decodeQRCode(decodedText.value);
+            }
+        };
+
+        const decodeQRCode = async (base64Data) => {
         try {
-            await promise;
-            console.log("カメラが正常に初期化されました");
+            const compressedData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+            const decompressedData = pako.inflate(compressedData, { to: "string" });
+            const parsedData = JSON.parse(decompressedData);
+
+            if (Array.isArray(parsedData) && parsedData.length === 3 && Array.isArray(parsedData[2])) {
+            const [storeId, purchaseDate, items] = parsedData;
+            decodedData.value = {
+              storeId,
+              purchaseDate,
+              items: items.map(item => ({
+                item_name: item[0],
+                price: item[1],
+                quantity: item[2]
+              }))
+            };
+
+            console.log("Decoded QR Code Data:", {
+                store_id: decodedData.value.storeId,
+                purchase_date: decodedData.value.purchaseDate,
+                items: decodedData.value.items,
+            });
+
+            console.log("デコード完了、データ送信を開始します...");
+            await sendDataToDatabase(decodedData.value);
+            } else {
+            throw new Error('データ形式が不正です');
+            }
         } catch (error) {
-            console.error("カメラの初期化に失敗しました:", error);
+            console.error('デコードエラー:', error);
+            decodedData.value = null;
+            alert('QRコードのデコードに失敗しました。');
         }
-    },
+        };
 
-    async onDetect(detectedCodes) {
-      if (detectedCodes.length > 0) {
-        this.decodedText = detectedCodes[0].rawValue;
-        await this.decodeQRCode(this.decodedText);
-      }
-    },
+        const sendDataToDatabase = async (data) => {
+        try {
+            const userId = localStorage.getItem("user");
+            if (!userId) {
+            throw new Error("ユーザー情報が見つかりません");
+            }
 
-    async decodeQRCode(base64Data) {
-      try {
-        const compressedData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-        const decompressedData = pako.inflate(compressedData, { to: "string" });
-        const parsedData = JSON.parse(decompressedData);
-
-        if (parsedData.storeId && parsedData.purchaseDate && Array.isArray(parsedData.items)) {
-          this.decodedData = parsedData;
-
-          console.log("Decoded QR Code Data:", {
-            store_id: this.decodedData.storeId,
-            purchase_date: this.decodedData.purchaseDate,
-            items: this.decodedData.items,
-          });
-
-          console.log("デコード完了、データ送信を開始します...");
-          await this.sendDataToDatabase(this.decodedData);
-        } else {
-          throw new Error('データ形式が不正です');
-        }
-
-      } catch (error) {
-        console.error('デコードエラー:', error);
-        this.decodedData = null;
-        alert('QRコードのデコードに失敗しました。');
-      }
-    },
-
-    async sendDataToDatabase(data) {
-    try {
-        const userId = localStorage.getItem("user");
-        if (!userId) {
-        throw new Error("ユーザー情報が見つかりません");
-        }
-
-        const payload = {
+            const payload = {
             user_id: userId,
             store_id: data.storeId,
             purchase_date: data.purchaseDate,
-            items: data.items.map(item => ({
-                item_id: item.id,
-                quantity: item.quantity,
-            }))
+            items: data.items
+            };
+
+            console.log("送信データ:", JSON.stringify(payload, null, 2));
+
+            const response = await axios.post(`${API_BASE_URL}/api/purchases`, payload);
+
+            console.log("レスポンス内容:", response);
+
+            if (response.status === 201) {
+            alert("購入データが正常に登録されました！");
+            } else {
+            throw new Error("サーバーエラーが発生しました");
+            }
+        } catch (error) {
+            console.error("データ送信エラー:", error);
+            if (error.response && error.response.status === 400) {
+                alert("このデータはすでに登録されています！");
+            } else {
+                alert("購入データの登録に失敗しました！");
+            }
+        }
         };
 
-        console.log("送信データ:", JSON.stringify(payload, null, 2)); // 確認用ログ
-
-        const response = await axios.post('http://localhost:5000/api/purchases', payload);
-
-        console.log("レスポンス内容:", response);
-
-        if (response.status === 201) {
-        alert("購入データが正常に登録されました！");
-        } else {
-        throw new Error("サーバーエラーが発生しました");
-        }
-    } catch (error) {
-        console.error("データ送信エラー:", error);
-        alert("購入データの登録に失敗しました！");
-    }
-    }
+    return {
+      decodedText,
+      decodedData,
+      user,
+      onInit,
+      onDetect,
+      decodeQRCode
+    };
   },
 };
 </script>
@@ -132,13 +175,19 @@ export default {
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 h1 {
   font-size: 2em;
   color: #333;
-  margin-bottom: 20px;
+}
+
+.v-card {
+  max-width: 500px;
+  margin: auto;
+  box-shadow: none !important;
+  border: 1.0px solid #a4a4a4;
+  border-radius: 16px;
 }
 
 .qrcode-wrapper {
@@ -200,33 +249,10 @@ h1 {
   border-top: none;
 }
 
-
 .qrcode-stream {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.decoded-result {
-  margin-top: 20px;
-  padding: 10px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-}
-
-.decoded-item {
-  background: #f9f9f9;
-  border: 1px solid #ddd;
-  padding: 10px;
-  border-radius: 4px;
-  margin-bottom: 10px;
-}
-
-.result {
-  font-size: 1.2em;
-  color: #333;
-  font-weight: bold;
-  word-break: break-all;
-}
 </style>

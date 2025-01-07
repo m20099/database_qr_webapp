@@ -7,6 +7,7 @@
         label="Username"
         variant="outlined"
         prepend-icon="mdi-account"
+        hint="6〜30文字の半角英数字のみ使用可能"
         :error-messages="errors.username"
         @input="clearError('username')"
       ></v-text-field>
@@ -24,8 +25,11 @@
         v-model="password"
         label="Password"
         variant="outlined"
+        :type="showPassword ? 'text' : 'password'"
         prepend-icon="mdi-lock"
-        type="password"
+        hint="8文字以上の半角英数字及び記号(- .)のみ使用可能"
+        :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+        @click:append-inner="togglePasswordVisibility"
         :error-messages="errors.password"
         @input="clearError('password')"
       ></v-text-field>
@@ -34,8 +38,10 @@
         v-model="confirmPassword"
         label="Retype Password"
         variant="outlined"
+        :type="showConfirmPassword ? 'text' : 'password'"
         prepend-icon="mdi-lock-check"
-        type="password"
+        :append-inner-icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'"
+        @click:append-inner="toggleConfirmPasswordVisibility"
         :error-messages="errors.confirmPassword"
         @input="clearError('confirmPassword')"
       ></v-text-field>
@@ -44,7 +50,7 @@
     </v-form>
 
     <p class="login-link">
-      アカウントをお持ちの方は 
+      アカウントをお持ちの方は
       <a href="/login">こちら</a>
     </p>
 
@@ -61,7 +67,6 @@
   </div>
 </template>
 
-
 <script>
 import { ref } from 'vue';
 import axios from 'axios';
@@ -70,6 +75,7 @@ import { useRouter } from 'vue-router';
 export default {
   name: 'UserRegister',
   setup() {
+    const API_BASE_URL = process.env.VUE_APP_API_BASE_URL;
     const username = ref('');
     const email = ref('');
     const password = ref('');
@@ -78,35 +84,48 @@ export default {
     const success = ref(false);
     const showPopup = ref(false);
     const router = useRouter();
+    const showPassword = ref(false);
+    const showConfirmPassword = ref(false);
+
+    const togglePasswordVisibility = () => {
+      showPassword.value = !showPassword.value;
+    };
+
+    const toggleConfirmPasswordVisibility = () => {
+      showConfirmPassword.value = !showConfirmPassword.value;
+    };
 
     const validateFields = () => {
       errors.value = {};
-        if (!username.value.trim()) {
-            errors.value.username = 'ユーザ名を入力してください。';
-        } else if (!/^[a-zA-Z0-9]{6,30}$/.test(username.value)) {
-            errors.value.username =
-            'ユーザ名は6〜30文字の半角英数字のみ使用可能です。';
-        }
+      if (!username.value.trim()) {
+        errors.value.username = 'ユーザ名を入力してください。';
+      } else if (!/^[a-zA-Z0-9]{6,15}$/.test(username.value)) {
+        errors.value.username =
+          '6~15文字の半角英数字のみ使用可能です。';
+      }
 
-        if (!email.value.trim()) {
-            errors.value.email = 'メールアドレスを入力してください。';
-        } else if (!email.value.includes('@')) {
-            errors.value.email = '有効なメールアドレスを入力してください。';
-        }
+      if (!email.value.trim()) {
+        errors.value.email = 'メールアドレスを入力してください。';
+      } else if (!email.value.includes('@')) {
+        errors.value.email = '有効なメールアドレスを入力してください。';
+      }
 
-        if (!password.value.trim()) {
-            errors.value.password = 'パスワードを入力してください。';
-        } else if (password.value.length < 8) {
-            errors.value.password = 'パスワードは8文字以上である必要があります。';
-        }
+      if (!password.value.trim()) {
+        errors.value.password = 'パスワードを入力してください。';
+      } else if (password.value.length < 8) {
+        errors.value.password = 'パスワードは8文字以上である必要があります。';
+      } else if (!/^[a-zA-Z0-9\-.]{8,}$/.test(password.value)) {
+        errors.value.password = '半角英数字と記号(-.)のみ使用可能です。';
+      }
 
-        if (!confirmPassword.value.trim()) {
-            errors.value.confirmPassword = 'パスワードを再入力してください。';
-        } else if (password.value !== confirmPassword.value) {
-            errors.value.confirmPassword = 'パスワードが一致しません。';
-        }
 
-        return Object.keys(errors.value).length === 0;
+      if (!confirmPassword.value.trim()) {
+        errors.value.confirmPassword = 'パスワードを再入力してください。';
+      } else if (password.value !== confirmPassword.value) {
+        errors.value.confirmPassword = 'パスワードが一致しません。';
+      }
+
+      return Object.keys(errors.value).length === 0;
     };
 
     const clearError = (field) => {
@@ -120,7 +139,7 @@ export default {
         return;
       }
       try {
-        const response = await axios.post('http://localhost:5000/api/register', {
+        const response = await axios.post(`${API_BASE_URL}/api/register`, {
           username: username.value,
           email: email.value,
           password: password.value,
@@ -135,27 +154,29 @@ export default {
 
           showPopup.value = true;
         }
-    } catch (err) {
+      } catch (err) {
         if (err.response) {
-        // サーバからのエラーを処理
-        if (err.response.status === 409) {
-            if (err.response.data.message.includes('ユーザ名')) {
-            errors.value.username = 'このユーザ名は既に使用されています。';
-            } else if (err.response.data.message.includes('メールアドレス')) {
-            errors.value.email = 'このメールアドレスは既に使用されています。';
+            console.log('エラーレスポンス:', err.response);
+
+          if (err.response.status === 409) {
+            if (err.response.data.errors.username) {
+              errors.value.username = 'このユーザ名は既に使用されています。';
             }
-        } else {
+            if (err.response.data.errors.email) {
+              errors.value.email = 'このメールアドレスは既に使用されています。';
+            }
+          } else {
             errors.value.form = '登録に失敗しました。もう一度お試しください。';
-        }
+          }
         } else {
-        errors.value.form = 'サーバーエラーが発生しました。';
+          errors.value.form = 'サーバーエラーが発生しました。';
         }
-    }
+      }
     };
 
     const redirectToLogin = () => {
-      showPopup.value = false;  // ポップアップを非表示にする
-      router.push('/login');     // ログインページへリダイレクト
+      showPopup.value = false;
+      router.push('/login');
     };
 
     return {
@@ -166,6 +187,10 @@ export default {
       errors,
       success,
       showPopup,
+      showPassword,
+      showConfirmPassword,
+      togglePasswordVisibility,
+      toggleConfirmPasswordVisibility,
       registerUser,
       clearError,
       redirectToLogin,
@@ -173,6 +198,7 @@ export default {
   },
 };
 </script>
+
 
 <style scoped>
 .user-register {
@@ -191,76 +217,15 @@ h1 {
   color: #333;
 }
 
-.form-group {
-  margin-bottom: 20px;
+.v-text-field {
+  margin-bottom: 12px;
 }
 
-label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-  color: #555;
-}
-
-input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  box-sizing: border-box;
-  font-size: 14px;
-  color: #333;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-input:focus {
-  border-color: #449deb;
-  outline: none;
-  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
-}
-
-.error-group input {
-  border-color: #e74c3c;
-}
 
 .error-text {
   color: #e74c3c;
   font-size: 12px;
   margin-top: 5px;
-}
-
-/* ボタン */
-.submit-button {
-  width: 100%;
-  padding: 12px;
-  font-size: 16px;
-  font-weight: bold;
-  color: white;
-  background-color: #135389;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.submit-button:hover {
-  background-color: #1d7ed1;
-}
-
-.error-message,
-.success-message {
-  margin-top: 15px;
-  text-align: center;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-.error-message {
-  color: #e74c3c;
-}
-
-.success-message {
-  color: #27ae60;
 }
 
 .login-link {
@@ -279,45 +244,6 @@ input:focus {
 
 .login-link a:hover {
   color: #1d7ed1;
-}
-
-.popup {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 20px;
-  border-radius: 10px;
-  text-align: center;
-  font-size: 16px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-}
-
-.popup button {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: 5px;
-  margin-top: 10px;
-}
-
-.popup button:hover {
-  background-color: #45a049;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 
 .popup-overlay {
