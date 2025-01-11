@@ -3,7 +3,7 @@
     <h1>Settings</h1>
 
     <v-row justify="center">
-      <v-col cols="12" md="8" sm="12">
+      <v-col cols="12" md="8" sm="10">
         <v-card outlined elevation="0">
           <v-list class="mb-4">
             <v-subheader class="subheader">
@@ -60,7 +60,7 @@
             <v-divider></v-divider>
           </v-list>
 
-          <v-list>
+          <v-list class="mb-4">
             <v-subheader class="subheader">
                 <v-icon class="subheader-icon" color="#135389">mdi-cash-multiple</v-icon>
                 支出管理設定
@@ -85,6 +85,23 @@
                 </div>
               </div>
             </v-list-item>
+          </v-list>
+          <v-list>
+            <v-subheader class="subheader">
+                <v-icon class="subheader-icon" color="#135389">mdi-palette</v-icon>
+                表示設定
+            </v-subheader>
+            <v-list-item link>
+              <div class="d-flex justify-space-between align-center w-100">
+                <span>ダークテーマ</span>
+                <div class="d-flex align-center">
+                  <span></span>
+                  <v-icon color="grey" class="ml-2">mdi-chevron-right</v-icon>
+                </div>
+              </div>
+            </v-list-item>
+            <v-divider></v-divider>
+
           </v-list>
         </v-card>
       </v-col>
@@ -117,10 +134,38 @@
         </v-card-text>
         <v-card-actions class="justify-end">
           <v-btn text class="font-weight-bold" @click="showDeleteDialog = false">CANCEL</v-btn>
-          <v-btn color="red" text class="font-weight-bold" @click="deleteAccount">OK</v-btn>
+          <v-btn color="red" text class="font-weight-bold" @click="showSecondDeleteDialog = true; showDeleteDialog = false; deleteClickCount = 0">OK</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="showSecondDeleteDialog" max-width="400">
+        <v-card class="pa-2">
+            <v-card-title class="d-flex align-center">
+                <v-icon color="red" style="padding-right:12px">mdi-alert</v-icon>
+                <span class="text-red font-weight-bold">CONFIRM DELETE</span>
+            </v-card-title>
+                <v-card-text>
+                    本当にアカウントを削除しますか？<br />この操作は取り消せません。
+                          <br /><br />
+                <span v-if="deleteClickCount < 5">
+                    削除を確定するには、<br />あと <strong>{{ 5 - deleteClickCount }}</strong> 回クリックしてください。
+                </span>
+                </v-card-text>
+            <v-card-actions class="justify-end">
+            <v-btn text class="font-weight-bold" @click="showSecondDeleteDialog = false; deleteClickCount = 0">CANCEL</v-btn>
+      <v-btn 
+        :disabled="deleteClickCount >= 5" 
+        color="red" 
+        text 
+        class="font-weight-bold" 
+        @click="handleDeleteClick">
+        {{ deleteClickCount < 5 ? `DELETE (${5 - deleteClickCount})` : 'DELETING...' }}
+      </v-btn>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
+
   </v-container>
 </template>
 
@@ -146,6 +191,8 @@ export default {
 
         const showLogoutDialog = ref(false);
         const showDeleteDialog = ref(false);
+        const showSecondDeleteDialog = ref(false);
+        const deleteClickCount = ref(0);
 
         const fetchUserSettings = async () => {
             try {
@@ -184,6 +231,15 @@ export default {
             }
         };
 
+        const handleDeleteClick = async () => {
+            if (deleteClickCount.value < 4) {
+                deleteClickCount.value++;
+            } else {
+                deleteClickCount.value++;
+                await deleteAccount();
+            }
+        };
+
         onMounted(() => {
             fetchUserSettings();
         });
@@ -198,7 +254,10 @@ export default {
             handleLogout,
             showLogoutDialog,
             deleteAccount,
-            showDeleteDialog
+            showDeleteDialog,
+            showSecondDeleteDialog,
+            deleteClickCount,
+            handleDeleteClick,
         };
     },
 }
