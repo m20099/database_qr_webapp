@@ -33,7 +33,7 @@ export default {
         try {
             const response = await axios.get(`${API_BASE_URL}/api/setting/${userId}`);
             if (response.status === 200) {
-                userMaxValue.value = response.data.budget_limit || null; // デフォルトはnull
+                userMaxValue.value = response.data.budget_limit || null; 
             } else {
                 console.error("設定データ取得失敗:", response.status);
             }
@@ -148,7 +148,7 @@ export default {
                 y: {
                 grid: { color: "rgba(0, 0, 0, 0.1)" },
                 ticks: {
-                    // display: false,
+                    display: false,
                     font: { size: window.innerWidth < 600 ? 10 : 12 },
                     color: "#555",
                     autoSkip: false,
