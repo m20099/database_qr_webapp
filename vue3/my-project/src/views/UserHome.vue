@@ -1,13 +1,13 @@
 <template>
   <v-container class="user-home">
     <v-row justify="center">
-      <v-col cols="8" md="8">
+      <v-col cols="8" md="8" sm="6">
         <v-card outlined class="pa-2 d-flex align-center">
           <v-icon class="mr-1">mdi-account</v-icon>
           <span>{{ userName || 'Loading...' }}</span>
         </v-card>
       </v-col>
-      <v-col cols="2" md="1">
+      <v-col cols="2" md="1" sm="2">
         <v-card outlined class="pa-0">
         <router-link to="/mypage/qr_reader" class="d-flex align-center justify-center text-decoration-none">
             <v-btn block class="pa-2" color="primary">
@@ -16,7 +16,7 @@
         </router-link>
         </v-card>
       </v-col>
-      <v-col cols="2" md="1">
+      <v-col cols="2" md="1" sm="2">
         <v-card outlined class="pa-0">
         <router-link to="/mypage/settings" class="d-flex align-center justify-center text-decoration-none">
             <v-btn block class="pa-2" color="primary">
@@ -28,7 +28,7 @@
     </v-row>
 
     <v-row justify="center">
-      <v-col cols="12" md="10" sm="12">
+      <v-col cols="12" md="10" sm="10">
         <v-card outlined>
           <v-card-title class="d-flex justify-space-between">
             <v-btn icon @click="goToPreviousWeek">
@@ -47,7 +47,7 @@
     </v-row>
 
     <v-row justify="center" class="totals-row" dense>
-      <v-col cols="12" md="5" sm="12">
+      <v-col cols="12" md="5" sm="10">
         <v-card outlined class="pa-2 mb-6">
           <v-tabs v-model="activeTab" align-tabs="center" class="tab-btn-group">
             <v-tab :value="1">
