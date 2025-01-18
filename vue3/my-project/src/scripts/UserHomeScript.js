@@ -15,25 +15,13 @@ export default {
     const userName = ref('');
     const userId = JSON.parse(localStorage.getItem("user"));
 
-    const fetchUserData = async () => {
-        try {
-            const response = await axios.get(`${API_BASE_URL}/api/username/${userId}`);
-            if (response.status === 200) {
-                userName.value = response.data.user_name;
-                console.log("User Name:", userName);
-            } else {
-                console.error("Failed to fetch user data:", response.status);
-            }
-        } catch (error) {
-            console.error("Error fetching user data:", error);
-        }
-    };
-
     const fetchUserSettings = async () => {
         try {
             const response = await axios.get(`${API_BASE_URL}/api/setting/${userId}`);
             if (response.status === 200) {
-                userMaxValue.value = response.data.budget_limit || null; 
+                userName.value = response.data.username;
+                userMaxValue.value = response.data.daily_spending_limit; 
+                console.log(userMaxValue)
             } else {
                 console.error("設定データ取得失敗:", response.status);
             }
@@ -41,13 +29,10 @@ export default {
             console.error("設定データ取得エラー:", error);
         }
     };
-    
 
     const fetchPurchaseData = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/purchases`, {
-            params: { user_id: userId },
-        });
+        const response = await axios.get(`${API_BASE_URL}/api/purchases/${userId}`);
 
         purchaseRecords.value = response.data.purchase_records;
 
@@ -65,39 +50,31 @@ export default {
         const weekdays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
         for (let i = 0; i < 7; i++) {
-          const date = new Date(sundayStart);
-          date.setDate(date.getDate() + i);
+            const date = new Date(sundayStart);
+            date.setDate(date.getDate() + i);
 
-        const weekday = weekdays[date.getDay()];
-        const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
-        labels.push([weekday, formattedDate]);
+            const weekday = weekdays[date.getDay()];
+            const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+            labels.push([weekday, formattedDate]);
 
-          const formattedDateKey = `${date.getMonth() + 1}/${date.getDate()}`;
-          data.push(groupedData[formattedDateKey] || 0);
+            const formattedDateKey = `${date.getMonth() + 1}/${date.getDate()}`;
+            data.push(groupedData[formattedDateKey] || 0);
         }
 
         weeklyData.value = data;
         updateChart(labels, data);
         } catch (error) {
-        console.error("購入データ取得エラー:", error.response ? error.response.data : error.message);
+            console.error("購入データ取得エラー:", error.response ? error.response.data : error.message);
         }
     };
 
     const updateChart = (labels, data) => {
-        const maxDataValue = Math.max(...data);
-
-        const getRoundedMax = (value) => {
-            const base = 1000;
-            const roundedValue = Math.ceil(value / base) * base;
-            return Math.max(roundedValue, 10000);
-        };
-
-        const autoRoundedMax = getRoundedMax(maxDataValue * 1.2);
-        const chartMax = userMaxValue.value || autoRoundedMax;
+        const chartMax = userMaxValue.value;
 
         const getStepSize = (maxValue) => {
-            const magnitude = Math.pow(10, Math.floor(Math.log10(maxValue)));
-            const stepSize = Math.ceil(maxValue / 10 / magnitude) * magnitude;
+            const step = Math.ceil(maxValue / 5);
+            const magnitude = Math.pow(10, Math.floor(Math.log10(step)));
+            const stepSize = Math.ceil(step / magnitude) * magnitude;
             return stepSize;
           };
 
@@ -138,34 +115,29 @@ export default {
             },
             scales: {
                 x: {
-                grid: { display: false },
-                ticks: {
-                    font: { size: window.innerWidth < 600 ? 10 : 12 },
-                    color: "#555",
-                    autoSkip: false,
-                },
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: window.innerWidth < 600 ? 10 : 12 },
+                        color: "#555",
+                        autoSkip: false,
+                    },
                 },
                 y: {
-                grid: { color: "rgba(0, 0, 0, 0.1)" },
-                ticks: {
-                    display: false,
-                    font: { size: window.innerWidth < 600 ? 10 : 12 },
-                    color: "#555",
-                    autoSkip: false,
-                    stepSize: stepSize,
-                    callback: (value) => `¥${value.toLocaleString()}`,
-                },
-                beginAtZero: true,
-                max: chartMax,
+                    grid: { color: "rgba(0, 0, 0, 0.1)" },
+                    ticks: {
+                        // display: false,
+                        font: { size: window.innerWidth < 600 ? 10 : 12 },
+                        color: "#555",
+                        autoSkip: false,
+                        stepSize: stepSize,
+                        callback: (value) => `¥${value.toLocaleString()}`,
+                    },
+                    beginAtZero: true,
+                    max: chartMax,
                 },
             },
             },
         });
-    };
-
-    const setUserMaxValue = (value) => {
-        userMaxValue.value = value;
-        fetchPurchaseData();
     };
 
     const isNextButtonDisabled = computed(() => {
@@ -233,7 +205,6 @@ export default {
     onMounted(async () => {
         await nextTick();
         await fetchUserSettings();
-        fetchUserData();
         fetchPurchaseData();
     });
 
@@ -247,7 +218,6 @@ export default {
       monthlyExpense,
       isNextButtonDisabled,
       computedDateRange,
-      setUserMaxValue,
       userMaxValue
     };
   },

@@ -37,10 +37,10 @@
     </v-container>
 
     <v-dialog v-model="showLogoutDialog" max-width="400">
-      <v-card>
+      <v-card class="pa-3">
         <v-card-title class="d-flex align-center">
-          <v-icon color="red" style="padding-right:12px">mdi-logout</v-icon>
-          <span>LOG OUT</span>
+          <v-icon color="red" style="margin-bottom: 4px; padding-right: 12px;">mdi-logout</v-icon>
+          <span class="font-weight-bold">LOG OUT</span>
         </v-card-title>
         <v-card-text>
           ログアウトしますか？

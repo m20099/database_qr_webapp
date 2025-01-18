@@ -24,12 +24,7 @@ jwt = JWTManager(app)
 # CORS 設定
 CORS(app, resources={r"/api/*": {"origins": "http://localhost:8080"}, r"/view-*": {"origins": "http://localhost:8080"}})
 CORS(app, resources={r"/api/*": {"origins": "http://192.168.128.115:8080"}, r"/view-*": {"origins": "http://192.168.128.115:8080"}})
-CORS(app, resources={r"/api/*": {"origins": "http://172.24.15.14:8080"}, r"/view-*": {"origins": "http://172.24.15.33:8080"}})
-
-# localhost:5000/
-@app.route("/",methods=['GET'])
-def index():
-    return "<h1>Reload test</h1>"
+CORS(app, resources={r"/api/*": {"origins": "http://172.24.15.36:8080"}, r"/view-*": {"origins": "http://172.24.15.36:8080"}})
 
 # ユーザ情報登録テーブル
 class User(db.Model):
@@ -46,7 +41,8 @@ class UserSettings(db.Model):
     __tablename__ = 'user_settings'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    budget_limit = db.Column(db.Float, nullable=False, default=10000)
+    daily_spending_limit = db.Column(db.Float, nullable=False, default=1000)
+    monthly_spending_limit = db.Column(db.Float, nullable=False, default=50000)
 
 # レシート管理テーブル
 class PurchaseRecord(db.Model):
@@ -81,26 +77,6 @@ class Store(db.Model):
     store_name = db.Column(db.String(100), nullable=False)
     is_deleted = db.Column(db.Boolean, nullable=False, default=False)
 
-# 読み取ったデータを渡すエンドポイント
-@app.route('/api/qr-data', methods=['POST'])
-def receive_qr_data():
-    data = request.get_json()
-
-    store_name = data['storeName']
-    store_location = data['storeLocation']
-    store_description = data['storeDescription']
-    
-    qr_data = QRData(
-        store_name=store_name,
-        store_location=store_location,
-        store_description=store_description
-    )
-    
-    db.session.add(qr_data)
-    db.session.commit()
-
-    return jsonify({'message': 'QR data received successfully'}), 201
-
 # /signup
 # ユーザ登録のエンドポイント
 @app.route('/api/register', methods=['POST'])
@@ -122,7 +98,12 @@ def register_user():
     hashed_password = generate_password_hash(password)
 
     user = User(username=username, email=email, password=hashed_password)
+    
     db.session.add(user)
+    db.session.commit()
+
+    user_settings = UserSettings(user_id=user.id)
+    db.session.add(user_settings)
     db.session.commit()
 
     return jsonify({'message': 'ユーザー登録成功'}), 201
@@ -144,44 +125,6 @@ def login():
     access_token = create_access_token(identity=user.id, expires_delta=timedelta(hours=1))
 
     return jsonify({'message': 'Login successful', 'token': access_token, 'user': user.id}), 200
-
-# ユーザー情報取得エンドポイント
-@app.route('/api/user-info', methods=['GET'])
-def get_user_info():
-    token = request.headers.get('Authorization').split(" ")[1]
-    try:
-        decoded_token = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-        user_id = decoded_token['user_id']
-        user = User.query.get(user_id)
-        
-        if user:
-            return jsonify({'username': user.username, 'email': user.email}), 200
-        else:
-            return jsonify({'message': 'User not found'}), 404
-    except jwt.ExpiredSignatureError:
-        return jsonify({'message': 'Token expired'}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'message': 'Invalid token'}), 401
-
-# ユーザ登録情報確認用のエンドポイント
-@app.route('/view-users', methods=['GET'])
-def view_users():
-    # ユーザー情報をすべて取得
-    users_list = User.query.all()
-    
-    users_data = [
-        {
-            'id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'password': user.password,
-            'created_at': user.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'is_deleted': user.is_deleted,
-        }
-        for user in users_list
-    ]
-    
-    return jsonify(users_data), 200
 
 # /receipt_simulator
 # 商品登録用エンドポイント
@@ -262,19 +205,17 @@ def view_stores():
     result = [{"id": store.id, "store_name": store.store_name} for store in stores]
     return jsonify(result), 200
 
-#QRコード読み取り時用エンドポイント
+# /mypage/qr-reader
+# QRコード読み取り時用エンドポイント
 @app.route('/api/purchases', methods=['POST'])
 def create_purchase():
-    # リクエストデータ受け取り
     data = request.get_json()
 
-    # 各データ取得
     user_id = data['user_id']
     store_id = data['store_id']
     purchase_date = datetime.strptime(data['purchase_date'], '%Y-%m-%d %H:%M')
     items = data['items']
 
-    # 重複チェック
     existing_purchase = PurchaseRecord.query.filter_by(
         user_id=user_id,
         store_id=store_id,
@@ -284,10 +225,8 @@ def create_purchase():
     if existing_purchase:
         return jsonify({'error': '同じ日時の購入データがすでに存在します！'}), 400
 
-    # 合計金額の計算
     total_amount = sum(item['price'] * item['quantity'] for item in items)
 
-    # データベース登録
     purchase_record = PurchaseRecord(
         user_id=user_id,
         store_id=store_id,
@@ -310,43 +249,8 @@ def create_purchase():
 
     return jsonify({'message': '購入データが正常に登録されました！'}), 201
 
-#購入データ確認用エンドポイント
-@app.route('/api/purchases', methods=['GET'])
-def get_all_purchases():
-    try:
-        # レシート管理テーブルのデータ取得
-        purchase_records = PurchaseRecord.query.all()
-        purchase_items = PurchaseItem.query.all()
-
-        # レシート管理テーブルの内容をリストに格納
-        purchase_results = []
-        for record in purchase_records:
-            purchase_results.append({
-                'purchase_id': record.id,
-                'user_id': record.user_id,
-                'store_id': record.store_id,
-                'purchase_date': record.purchase_date.strftime('%Y-%m-%d %H:%M'),
-                'total_amount': record.total_amount
-            })
-
-        # 購入商品テーブルの内容をリストに格納
-        item_results = []
-        for item in purchase_items:
-            item_results.append({
-                'purchase_id': item.purchase_id,
-                'item_name': item.item_name,
-                'price': item.price,
-                'quantity': item.quantity
-            })
-
-        return jsonify({
-            'purchase_records': purchase_results,
-            'purchase_items': item_results
-        }), 200
-
-    except Exception as e:
-        return jsonify({'message': f'エラー: {str(e)}'}), 500
-
+# /mypage/receipt_list
+# レシート情報取得用エンドポイント
 @app.route('/api/receipts', methods=['GET'])
 def get_receipts():
     user_id = request.args.get('user_id')
@@ -354,39 +258,35 @@ def get_receipts():
         return jsonify({"error": "user_id is required"}), 400
 
     try:
-        # ユーザーに関連する購入履歴を取得
         purchase_records = PurchaseRecord.query.filter_by(user_id=user_id).all()
 
-        # 結果を整形
         result = []
         for record in purchase_records:
-            # 購入商品データを直接使用
             items = PurchaseItem.query.filter_by(purchase_id=record.id).all()
             item_details = []
             for item in items:
                 item_details.append({
-                    "id": item.id,                     # アイテムID
-                    "item_name": item.item_name,       # 商品名
-                    "price": item.price,               # 単価
-                    "quantity": item.quantity          # 数量
+                    "id": item.id,                     
+                    "item_name": item.item_name,      
+                    "price": item.price,              
+                    "quantity": item.quantity         
                 })
 
-            # 店舗情報の取得
             store = Store.query.filter_by(id=record.store_id, is_deleted=False).first()
             store_name = store.store_name if store else "Unknown"
 
-            # レスポンスデータに整形
             result.append({
-                "id": record.id,                         # レシートID
-                "store_name": store_name,                # 店舗名
-                "purchase_date": record.purchase_date,   # 購入日
-                "items": item_details                    # 購入商品リスト
+                "id": record.id,                         
+                "store_name": store_name,                
+                "purchase_date": record.purchase_date,   
+                "items": item_details                    
             })
 
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# /mypage
 # ユーザIDに対応した購入データを引っ張ってくるエンドポイント
 @app.route('/api/purchases/<int:user_id>', methods=['GET'])
 def get_purchases(user_id):
@@ -404,54 +304,26 @@ def get_purchases(user_id):
             'total_amount': purchase.total_amount
         })
 
-    return jsonify(result), 200
+    return jsonify({'purchase_records': result}), 200
 
-@app.route('/api/username/<int:user_id>', methods=['GET'])
-def get_username(user_id):
-    user = User.query.filter_by(id=user_id, is_deleted=False).first()
-    
-    if user is None:
-        return jsonify({"error": "User not found"}), 404
-
-    return jsonify({
-        'user_name': user.username
-    })
-
-# ユーザ設定反映用エンドポイント
-@app.route('/api/setting', methods=['POST'])
-def save_user_setting():
-    data = request.json
-    user_id = data.get('user_id')
-    budget_limit = data.get('budget_limit')
-
-    setting = UserSettings.query.filter_by(user_id=user_id).first()
-    if setting:
-        setting.budget_limit = budget_limit
-    else:
-        setting = UserSettings(user_id=user_id, budget_limit=budget_limit)
-        db.session.add(setting)
-
-    db.session.commit()
-    return jsonify({'message': '設定が保存されました！'}), 200
-
+# 設定データ取得用エンドポイント
 @app.route('/api/setting/<int:user_id>', methods=['GET'])
 def get_user_setting(user_id):
-    # User と UserSettings を結合してデータを取得
-    user = db.session.query(User, UserSettings).join(
-        UserSettings, User.id == UserSettings.user_id
-    ).filter(User.id == user_id, User.is_deleted == False).first()
+    user = User.query.filter_by(id=user_id, is_deleted=False).first()
+    settings =  UserSettings.query.filter_by(user_id=user_id).first()
 
-    if user:
-        user_data = {
-            'username': user.User.username,
-            'email': user.User.email,
-            'created_at': user.User.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'budget_limit': user.UserSettings.budget_limit
-        }
-        return jsonify(user_data), 200
+    user_data = {
+        'username': user.username,
+        'email': user.email,
+        'created_at': user.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'daily_spending_limit': settings.daily_spending_limit,
+        'monthly_spending_limit': settings.monthly_spending_limit
+    }
+    return jsonify(user_data), 200
 
-    return jsonify({'error': 'User not found'}), 404
 
+# /mypage/settings
+# ユーザ削除用エンドポイント
 @app.route('/api/user/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
     user = User.query.get(user_id)
@@ -462,6 +334,122 @@ def delete_user(user_id):
     db.session.commit()
     return jsonify({'message': 'User deleted successfully'}), 200
 
+# 設定反映用エンドポイント
+@app.route('/api/setting', methods=['PUT'])
+def update_user_settings():
+    data = request.json
+    user_id = data.get('user_id')
+    field = data.get('field')
+    value = data.get('value')
+
+    user = User.query.filter_by(id=user_id, is_deleted=False).first()
+
+    errors = {}
+
+    if field in ['username', 'email', 'password']:
+        if field == 'username':
+            if User.query.filter_by(username=value, is_deleted=False).first():
+                errors['username'] = 'そのユーザー名は既に使用されています。'
+            else:
+                user.username = value
+        elif field == 'email':
+            if User.query.filter_by(email=value, is_deleted=False).first():
+                errors['email'] = 'そのメールアドレスは既に使用されています。'
+            else:
+                user.email = value
+        elif field == 'password':
+            current_password = data.get('current_password')
+            if not check_password_hash(user.password, current_password):
+                errors['password'] = 'パスワードが間違っています。'
+            else:
+                hashed_password = generate_password_hash(value)
+                user.password = hashed_password
+
+    elif field in ['daymax', 'monthmax']:
+        expense_setting = UserSettings.query.filter_by(user_id=user_id).first()
+        if not expense_setting:
+            return jsonify({"error": "ユーザー設定が見つかりません"}), 404
+        
+        if field == 'daymax':
+            expense_setting.daily_spending_limit = value
+        elif field == 'monthmax':
+            expense_setting.monthly_spending_limit = value
+
+    if errors:
+        return jsonify({'errors': errors}), 409
+    
+    db.session.commit()
+    return jsonify({"success": True, "message": "設定が更新されました。"}), 200
+
+### デバッグ用
+# ユーザ登録情報確認用のエンドポイント
+@app.route('/view-users', methods=['GET'])
+def view_users():
+    # ユーザー情報をすべて取得
+    users_list = User.query.all()
+    
+    users_data = [
+        {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'created_at': user.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'is_deleted': user.is_deleted,
+        }
+        for user in users_list
+    ]
+    
+    return jsonify(users_data), 200
+
+# 購入データ確認用エンドポイント
+@app.route('/api/purchases', methods=['GET'])
+def get_all_purchases():
+    try:
+        purchase_records = PurchaseRecord.query.all()
+        purchase_items = PurchaseItem.query.all()
+
+        purchase_results = []
+        for record in purchase_records:
+            purchase_results.append({
+                'purchase_id': record.id,
+                'user_id': record.user_id,
+                'store_id': record.store_id,
+                'purchase_date': record.purchase_date.strftime('%Y-%m-%d %H:%M'),
+                'total_amount': record.total_amount
+            })
+
+        item_results = []
+        for item in purchase_items:
+            item_results.append({
+                'purchase_id': item.purchase_id,
+                'item_name': item.item_name,
+                'price': item.price,
+                'quantity': item.quantity
+            })
+
+        return jsonify({
+            'purchase_records': purchase_results,
+            'purchase_items': item_results
+        }), 200
+
+    except Exception as e:
+        return jsonify({'message': f'エラー: {str(e)}'}), 500
+
+# ユーザ設定確認用エンドポイント
+@app.route('/view-settings', methods=['GET'])
+def get_all_settinsg():
+    settings_list = UserSettings.query.all()
+    
+    setting_data = [
+        {
+            'id': setting.id,
+            'user_id': setting.user_id,
+            'day_max': setting.daily_spending_limit,
+            'month_max': setting.monthly_spending_limit,
+        }
+        for setting in settings_list
+    ]
+    return jsonify(setting_data), 200
 
 if __name__ == "__main__":
     with app.app_context():
