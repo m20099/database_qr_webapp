@@ -24,7 +24,18 @@ jwt = JWTManager(app)
 # CORS 設定
 CORS(app, resources={r"/api/*": {"origins": "http://localhost:8080"}, r"/view-*": {"origins": "http://localhost:8080"}})
 CORS(app, resources={r"/api/*": {"origins": "http://192.168.128.115:8080"}, r"/view-*": {"origins": "http://192.168.128.115:8080"}})
-CORS(app, resources={r"/api/*": {"origins": "http://172.24.15.36:8080"}, r"/view-*": {"origins": "http://172.24.15.36:8080"}})
+CORS(app, resources={r"/api/*": {"origins": "http://172.24.15.164:8080"}, r"/view-*": {"origins": "http://172.24.15.164:8080"}})
+
+
+#---------------- Databases ----------------#
+# User              ユーザ情報登録テーブル
+# UserSettings      ユーザ設定テーブル
+# PurchaseRecord    レシート管理テーブル
+# PurchaseItem      購入商品テーブル
+# Item              商品テーブル
+# Store             店名テーブル
+#-------------------------------------------#
+
 
 # ユーザ情報登録テーブル
 class User(db.Model):
@@ -320,7 +331,6 @@ def get_user_setting(user_id):
         'monthly_spending_limit': settings.monthly_spending_limit
     }
     return jsonify(user_data), 200
-
 
 # /mypage/settings
 # ユーザ削除用エンドポイント

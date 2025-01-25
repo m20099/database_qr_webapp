@@ -561,15 +561,15 @@ export default {
         
         const handleReset = async () => {
             try {
-                const dayResponse = await axios.put(`${API_BASE_URL}/api/setting/expense`,{
+                const dayResponse = await axios.put(`${API_BASE_URL}/api/setting`,{
                     user_id: userId,
                     field: 'daymax',
                     value: 1000,
                 });
-                const monthResponse = await axios.put(`${API_BASE_URL}/api/setting/expense`,{
+                const monthResponse = await axios.put(`${API_BASE_URL}/api/setting`,{
                     user_id: userId,
                     field: 'monthmax',
-                    value: 5000,
+                    value: 30000,
                 });
                 if (dayResponse.status === 200 && monthResponse.status === 200) {
                     fetchUserSettings();

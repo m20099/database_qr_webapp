@@ -47,8 +47,8 @@
     </v-row>
 
     <v-row justify="center" class="totals-row" dense>
-      <v-col cols="12" md="5" sm="10">
-        <v-card outlined class="pa-2 mb-6">
+      <v-col cols="12" md="10" sm="10">
+        <v-card outlined class="pa-2">
           <v-tabs v-model="activeTab" align-tabs="center" class="tab-btn-group">
             <v-tab :value="1">
               <v-icon color="blue" class="mr-1">mdi-calendar-today</v-icon>Today
@@ -91,6 +91,68 @@
         </v-card>
       </v-col>
     </v-row>
+
+<v-row justify="center" dense>
+  <v-col cols="6" md="5" sm="5">
+    <v-card outlined class="text-center">
+      <v-card-text>
+        <v-container>
+          <v-progress-circular
+            :model-value="todayprogressValue"
+            :color="isTodayOverLimit ? 'error' : '#135389'"
+            :size="progressSize"
+            :width="15"
+            :rotate="360"
+          >
+            <div class="text-center">
+              <div class="text-h6 font-weight-bold">¥{{ todayExpense.toLocaleString() }}</div>
+              <div
+                :class="{
+                  'text-success': !isTodayOverLimit,
+                  'text-error': isTodayOverLimit,
+                }"
+                class="text-subtitle-1 font-weight-medium"
+              >
+                {{ todaylimitDifferenceText }}
+              </div>
+            </div>
+          </v-progress-circular>
+        </v-container>
+      </v-card-text>
+    </v-card>
+  </v-col>
+
+  <v-col cols="6" md="5" sm="5">
+    <v-card outlined class="text-center">
+      <v-card-text>
+        <v-container>
+          <v-progress-circular
+            :model-value="monthprogressValue"
+            :color="isMonthOverLimit ? 'error' : '#135389'"
+            :size="progressSize"
+            :width="15"
+            :rotate="360"
+          >
+            <div class="text-center">
+              <div class="text-h6 font-weight-bold">¥{{ monthlyExpense.toLocaleString() }}</div>
+              <div
+                :class="{
+                  'text-success': !isMonthOverLimit,
+                  'text-error': isMonthOverLimit,
+                }"
+                class="text-subtitle-1 font-weight-medium"
+              >
+                {{ monthlimitDifferenceText }}
+              </div>
+            </div>
+          </v-progress-circular>
+        </v-container>
+      </v-card-text>
+    </v-card>
+  </v-col>
+</v-row>
+
+
   </v-container>
 </template>
 
