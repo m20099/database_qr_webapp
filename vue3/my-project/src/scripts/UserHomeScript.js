@@ -12,8 +12,15 @@ export default {
     let chartInstance = null;
     const activeTab = ref(1);
     const userMaxValue = ref(null);
+    const userMaxValue2 = ref(null);
     const userName = ref('');
     const userId = JSON.parse(localStorage.getItem("user"));
+    const progressSize = ref(getResponsiveSize());
+
+    function getResponsiveSize() {
+        const screenWidth = window.innerWidth;
+        return screenWidth < 600 ? 120 : 150;
+    }
 
     const fetchUserSettings = async () => {
         try {
@@ -21,6 +28,7 @@ export default {
             if (response.status === 200) {
                 userName.value = response.data.username;
                 userMaxValue.value = response.data.daily_spending_limit; 
+                userMaxValue2.value = response.data.monthly_spending_limit;
                 console.log(userMaxValue)
             } else {
                 console.error("設定データ取得失敗:", response.status);
@@ -81,15 +89,22 @@ export default {
         const stepSize = getStepSize(chartMax);
 
         const ctx = document.getElementById("expenseChart").getContext("2d");
+        const backgroundColors = data.map(value =>
+            value > chartMax ? "rgba(244, 67, 54, 0.8)" : "rgba(33, 150, 243, 0.6)"
+        );
+        const borderColors = data.map(value =>
+            value > chartMax ? "rgba(244, 67, 54, 1)" : "rgba(33, 150, 243, 1)"
+        );
         const chartData = {
             labels: labels,
             datasets: [
             {
                 data: data,
-                backgroundColor: "rgba(33, 150, 243, 0.6)",
-                borderColor: "rgba(33, 150, 243, 1)",
-                borderWidth: 1,
-                hoverBackgroundColor: "rgba(33, 150, 243, 0.8)",
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
+                borderWidth: 1.5,
+                hoverBackgroundColor: backgroundColors,
+                hoverBorderColor: borderColors,
             },
             ],
         };
@@ -160,6 +175,44 @@ export default {
         }, 0);
     });
 
+    const isTodayOverLimit = computed(() => {
+        return todayExpense.value > (userMaxValue.value || 0);
+    });
+
+    const isMonthOverLimit = computed(() => {
+        return monthlyExpense.value > (userMaxValue2.value || 0);
+    });
+
+    const todaylimitDifferenceText = computed(() => {
+        const difference = todayExpense.value - (userMaxValue.value || 0);
+        if (isTodayOverLimit.value) {
+          return `+ ¥${Math.abs(difference).toLocaleString()}`;
+        } else {
+          return `- ¥${Math.abs(difference).toLocaleString()}`;
+        }
+    });
+
+    const monthlimitDifferenceText = computed(() => {
+        const difference = monthlyExpense.value - (userMaxValue2.value || 0);
+        if (isMonthOverLimit.value) {
+          return `+ ¥${Math.abs(difference).toLocaleString()}`;
+        } else {
+          return `- ¥${Math.abs(difference).toLocaleString()}`;
+        }
+    });
+
+    const todayprogressValue = computed(() => {
+        const max = userMaxValue.value || 1;
+        const percentage = (todayExpense.value / max) * 100;
+        return percentage > 100 ? 100 : percentage;
+    });
+
+    const monthprogressValue = computed(() => {
+        const max = userMaxValue2.value || 1;
+        const percentage = (monthlyExpense.value / max) * 100;
+        return percentage > 100 ? 100 : percentage;
+    });
+
     const monthlyExpense = computed(() => {
         const currentMonth = today.getMonth() + 1;
         const currentYear = today.getFullYear();
@@ -203,9 +256,9 @@ export default {
     };
 
     onMounted(async () => {
-        await nextTick();
         await fetchUserSettings();
-        fetchPurchaseData();
+       await fetchPurchaseData();
+        await nextTick();
     });
 
     return {
@@ -218,7 +271,15 @@ export default {
       monthlyExpense,
       isNextButtonDisabled,
       computedDateRange,
-      userMaxValue
+      userMaxValue,
+      userMaxValue2,
+      isTodayOverLimit,
+      isMonthOverLimit,
+      todaylimitDifferenceText,
+      monthlimitDifferenceText,
+      todayprogressValue,
+      monthprogressValue,
+      progressSize
     };
   },
 };
